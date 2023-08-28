@@ -1,36 +1,36 @@
 use std::fs;
 
 #[derive(Debug)]
-struct PaperRock{
+struct PaperRock {
     me: char,
-    you: char
+    you: char,
 }
 
 impl PaperRock {
-    fn score_my_choice (&self) -> usize {
+    fn score_my_choice(&self) -> usize {
         match &self.me {
             'X' => 1,
             'Y' => 2,
             'Z' => 3,
-            _ => unreachable!()
+            _ => unreachable!(),
         }
     }
 
-    fn score_confrontation (&self) -> usize {
+    fn score_confrontation(&self) -> usize {
         match (&self.me, &self.you) {
-            ('X', 'B') | ('Y', 'C') | ('Z', 'A')  => 0,
+            ('X', 'B') | ('Y', 'C') | ('Z', 'A') => 0,
             ('X', 'C') | ('Y', 'A') | ('Z', 'B') => 6,
-            _ => 3
+            _ => 3,
         }
     }
 
-    fn score_total (&self) -> usize {
+    fn score_total(&self) -> usize {
         self.score_my_choice() + self.score_confrontation()
     }
 }
 
-fn parse_input (result: char, you:char) -> PaperRock {
-    let me: char = match(result, you) {
+fn parse_input(result: char, you: char) -> PaperRock {
+    let me: char = match (result, you) {
         ('X', 'A') => 'Z',
         ('X', 'B') => 'X',
         ('X', 'C') => 'Y',
@@ -40,9 +40,9 @@ fn parse_input (result: char, you:char) -> PaperRock {
         ('Z', 'A') => 'Y',
         ('Z', 'B') => 'Z',
         ('Z', 'C') => 'X',
-        _ => unreachable!()
+        _ => unreachable!(),
     };
-    PaperRock{you, me}
+    PaperRock { you, me }
 }
 
 fn main() {
@@ -52,23 +52,24 @@ fn main() {
 
     println!("Reading {file_path}");
 
-    let contents = fs::read_to_string(file_path)
-        .expect("Should have been able to read the file");
-    
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+
     //let mut count = 0;
-    let data_part_1: usize = contents.lines()
+    let data_part_1: usize = contents
+        .lines()
         .map(|line| {
-            let mut toto = line.chars();//split_once(" ").unwrap();
-            let a = toto.next().unwrap();//(toto.0, toto.1)
+            let mut toto = line.chars(); //split_once(" ").unwrap();
+            let a = toto.next().unwrap(); //(toto.0, toto.1)
             let b = toto.nth(1).unwrap();
-            let rps = PaperRock{you:a, me:b};
+            let rps = PaperRock { you: a, me: b };
             //let toto: Vec<&str> = line.split(" ").map(|x| x).collect();
             rps.score_total()
             //toto[0]
         })
         .sum();
 
-    let data_part_2: usize = contents.lines()
+    let data_part_2: usize = contents
+        .lines()
         .map(|line| {
             let mut toto = line.chars();
             let a = toto.nth(0).unwrap();
