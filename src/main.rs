@@ -45,9 +45,7 @@ fn parse_input(result: char, you: char) -> PaperRock {
     PaperRock { you, me }
 }
 
-fn main() {
-    println!("Hello, world!");
-
+fn day02() {
     let file_path = "./inputs/day02/input.txt";
 
     println!("Reading {file_path}");
@@ -86,4 +84,9 @@ fn main() {
     //}
 
     //println!("Content of the file:\n{row}");
+}
+
+fn main() {
+    println!("Hello, world!");
+    day02()
 }
