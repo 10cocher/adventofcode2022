@@ -212,9 +212,85 @@ fn day04() {
     println!("The result for part 2 of day 04 is {res_part2}");
 }
 
+fn day05() {
+    let file_path = "./inputs/day05/input.txt";
+    let contents =
+        fs::read_to_string(file_path).expect("Should have been able to read the file of day 5");
+    let re = match Regex::new("^move ([0-9]+) from ([0-9]+) to ([0-9]+)$") {
+        Ok(result) => result,
+        Err(error) => panic!("Problem constructing the regex {}", error),
+    };
+    let mut initialization_finished: bool = false;
+    let mut stacks: Vec<Vec<char>> = Vec::new();
+    for (_, line) in contents.lines().enumerate() {
+        if !initialization_finished {
+            let n_cols: usize = line.len();
+            // println!("There are {n_cols} in {}", line);
+            if n_cols == 0 {
+                initialization_finished = true;
+                // reverse all individual stacks
+                stacks.iter_mut().for_each(|stack| stack.reverse());
+                // println!("stacks {:?}", stacks);
+                continue;
+            }
+            if (line.as_bytes()[0] as char == ' ') & (line.as_bytes()[1] as char != ' ') {
+                continue;
+            }
+            if !initialization_finished {
+                let trimed_line: &str = line.trim_end();
+                let n_cols_trim: usize = trimed_line.len();
+                let n_stacks_this_line: usize = (n_cols_trim + 1) / 4;
+                for i_stack in 0..n_stacks_this_line {
+                    let char_pos: usize = 4 * i_stack + 1;
+                    let byte_char_pos: u8 = trimed_line.as_bytes()[char_pos];
+                    let new_char: char = byte_char_pos as char;
+                    if stacks.len() < i_stack + 1 {
+                        let mut new_vec = Vec::new();
+                        if new_char != ' ' {
+                            new_vec.push(new_char);
+                        }
+                        stacks.push(new_vec);
+                    } else {
+                        if new_char != ' ' {
+                            stacks[i_stack].push(new_char);
+                        }
+                    }
+                }
+            }
+        } else {
+            let match_results = match re.captures(line) {
+                Some(match_result) => match_result,
+                None => panic!("I did not find match"),
+            };
+            let height: isize = match_results[1].parse().unwrap();
+            let origin: usize = match_results[2].parse().unwrap();
+            let destination: usize = match_results[3].parse().unwrap();
+            let mut temp_stack: Vec<char> = Vec::new();
+            for _ in 0..height {
+                // println!("stacks {:?}", stacks);
+                // println!("height={height}, origin={origin}, destination={destination}");
+                let char_to_move: char = stacks[origin - 1].pop().unwrap();
+                temp_stack.push(char_to_move);
+                // stacks[destination - 1].push(char_to_move);
+            }
+            for _ in 0..height {
+                stacks[destination - 1].push(temp_stack.pop().unwrap());
+            }
+        }
+    }
+    // println!("stacks {:?}", stacks);
+    let mut res_part1: String = String::from("");
+    for stack in stacks.iter_mut() {
+        let char_to_append = stack.pop().unwrap();
+        res_part1.push(char_to_append);
+    }
+    println!("The result for part 2 of day 05 is {res_part1}");
+}
+
 fn main() {
     println!("Hello, world!");
     day02();
     day03();
     day04();
+    day05();
 }
