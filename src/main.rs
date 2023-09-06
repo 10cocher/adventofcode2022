@@ -1,4 +1,5 @@
 use regex::Regex;
+use std::collections::HashMap;
 use std::fs;
 
 #[derive(Debug)]
@@ -213,7 +214,7 @@ fn day04() {
 }
 
 fn day05() {
-    let file_path = "./inputs/day05/input.txt";
+    let file_path = "./inputs/day05/input0.txt";
     let contents =
         fs::read_to_string(file_path).expect("Should have been able to read the file of day 5");
     let re = match Regex::new("^move ([0-9]+) from ([0-9]+) to ([0-9]+)$") {
@@ -287,10 +288,122 @@ fn day05() {
     println!("The result for part 2 of day 05 is {res_part1}");
 }
 
+fn find_result_day06(word: &str, depth: usize) -> usize {
+    let mut result: usize = 0;
+    let mut candidate: usize = 0;
+    let last_candidate: usize = word.len() - depth;
+    // println!("depth={depth}, last_candidate={last_candidate}");
+    while candidate <= last_candidate {
+        let mut ok_candidate: bool = true;
+        for level in 1..depth {
+            let mut ok_level: bool = true;
+            // println!("level {level}");
+            for a in candidate..candidate + depth - level {
+                let b = a + level;
+                let chara = &word[a..=a];
+                let charb = &word[b..=b];
+                if chara == charb {
+                    ok_level = false;
+                    break;
+                }
+                // println!("Compare chars at pos {a} and {b}, {chara}, {charb}")
+            }
+            if !ok_level {
+                ok_candidate = false;
+                break;
+            }
+        }
+        if ok_candidate {
+            result = candidate + depth;
+            break;
+        } else {
+            candidate = candidate + 1;
+        }
+    }
+    result
+}
+
+fn day06() {
+    let file_path: &str = "./inputs/day06/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let buffer = contents.trim();
+    let res_part1: usize = find_result_day06(&buffer, 4);
+    println!("The result for part 1 of day 06 is {res_part1}");
+    let res_part2: usize = find_result_day06(&buffer, 14);
+    println!("The result for part 2 of day 06 is {res_part2}");
+    //println!("'{buffer}'");
+}
+
+fn day07() {
+    let file_path: &str = "./inputs/day07/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let lines = contents.lines();
+    //
+    let mut active_folders: Vec<&str> = Vec::new();
+    let mut folder_sizes: HashMap<String, usize> = HashMap::new();
+    let mut files: Vec<String> = Vec::new();
+    //
+    for line in lines {
+        if &line[0..4] == "$ cd" {
+            if &line[5..6] == "." {
+                active_folders.pop();
+            } else {
+                let new_folder: &str = &line[5..];
+                active_folders.push(new_folder);
+            }
+        } else if (&line[0..3] != "dir") & (&line[0..4] != "$ ls") {
+            let filedata: Vec<&str> = line.split_whitespace().collect();
+            let filesize: usize = filedata[0].parse().unwrap();
+            let filename: &str = filedata[1];
+            let mut absolute_path = String::from("");
+            for folder in &active_folders {
+                absolute_path.push_str(folder);
+                absolute_path.push_str("/");
+                let size_count = folder_sizes.entry(absolute_path.clone()).or_insert(0);
+                *size_count += filesize;
+            }
+            absolute_path.push_str(filename);
+            if files.contains(&absolute_path) {
+                println!("This one was already counted {}", absolute_path)
+            } else {
+                files.push(absolute_path);
+            }
+        }
+    }
+    let mut res_part1: usize = 0;
+    for (_, folder_size) in &folder_sizes {
+        if folder_size <= &100_000 {
+            res_part1 = res_part1 + folder_size;
+        }
+    }
+    println!("The result for part 1 of day 07 is {res_part1}");
+    let used_space: &usize = folder_sizes.get("//").unwrap();
+    // println! {"Used space is {used_space}"}
+    let free_space: usize = 70_000_000 - used_space;
+    // println! {"Free space is {free_space}"}
+    let space_to_free: usize = 30_000_000 - free_space;
+    // println!("Need to free {space_to_free}");
+    let mut res_part2: usize = 70_000_000;
+    let mut all: Vec<usize> = Vec::new();
+    for (_, folder_size) in folder_sizes {
+        all.push(folder_size.clone());
+        if (folder_size < res_part2) & (folder_size >= space_to_free) {
+            res_part2 = folder_size;
+        }
+    }
+    all.sort();
+    // println!("{:?}", all);
+    println!("The result for part 2 of day 07 is {res_part2}");
+    // Wrong aswers
+    // 11285770
+}
+
 fn main() {
     println!("Hello, world!");
     day02();
     day03();
     day04();
     day05();
+    day06();
+    day07();
 }
