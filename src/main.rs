@@ -1,4 +1,6 @@
+use array2d::Array2D;
 use regex::Regex;
+use std::cmp;
 use std::collections::HashMap;
 use std::fs;
 
@@ -394,8 +396,232 @@ fn day07() {
     all.sort();
     // println!("{:?}", all);
     println!("The result for part 2 of day 07 is {res_part2}");
-    // Wrong aswers
-    // 11285770
+}
+
+fn day08() {
+    let file_path: &str = "./inputs/day08/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let lines = contents.lines();
+    //
+    let n_rows: usize = lines.clone().count();
+    let line = lines.clone().next().unwrap();
+    let n_cols: usize = line.len();
+    // Initialize from file
+    let mut array: Array2D<u8> = Array2D::filled_with(0, n_rows, n_cols);
+    for (i_row, line) in lines.enumerate() {
+        for (i_col, character) in line.chars().enumerate() {
+            let value: u8 = character.to_string().parse().unwrap();
+            let _result = array.set(i_row, i_col, value);
+        }
+    }
+    //
+    let mut ok: Array2D<bool> = Array2D::filled_with(false, n_rows, n_cols);
+    // Check from top
+    let mut row_ok: Vec<u8> = vec![0; n_cols];
+    for i_col in 0..n_cols {
+        row_ok[i_col] = array.get(0, i_col).unwrap().clone();
+        let _result = ok.set(0, i_col, true);
+    }
+    for i_row in 1..(n_rows - 1) {
+        for i_col in 0..n_rows {
+            let tree: u8 = array.get(i_row, i_col).unwrap().clone();
+            let visible_tree: bool = tree > row_ok[i_col];
+            row_ok[i_col] = cmp::max(row_ok[i_col], tree);
+            ok.get_mut(i_row, i_col).map(|x| *x = *x | &visible_tree);
+        }
+    }
+    // Check from bottom
+    let mut row_ok: Vec<u8> = vec![0; n_cols];
+    for i_col in 0..n_cols {
+        row_ok[i_col] = array.get(n_rows - 1, i_col).unwrap().clone();
+        let _result = ok.set(n_rows - 1, i_col, true);
+    }
+    for i_row in (1..(n_rows - 1)).rev() {
+        for i_col in 0..n_rows {
+            let tree: u8 = array.get(i_row, i_col).unwrap().clone();
+            let visible_tree: bool = tree > row_ok[i_col];
+            row_ok[i_col] = cmp::max(row_ok[i_col], tree);
+            ok.get_mut(i_row, i_col).map(|x| *x = *x | &visible_tree);
+        }
+    }
+    // Check from right
+    let mut col_ok: Vec<u8> = vec![0; n_rows];
+    for i_row in 0..n_rows {
+        col_ok[i_row] = array.get(i_row, n_cols - 1).unwrap().clone();
+        let _result = ok.set(i_row, n_cols - 1, true);
+    }
+    for i_col in (1..(n_cols - 1)).rev() {
+        for i_row in 0..n_rows {
+            let tree: u8 = array.get(i_row, i_col).unwrap().clone();
+            let visible_tree: bool = tree > col_ok[i_row];
+            col_ok[i_row] = cmp::max(col_ok[i_row], tree);
+            ok.get_mut(i_row, i_col).map(|x| *x = *x | &visible_tree);
+        }
+    }
+    // Check from left
+    let mut col_ok: Vec<u8> = vec![0; n_rows];
+    for i_row in 0..n_rows {
+        col_ok[i_row] = array.get(i_row, 0).unwrap().clone();
+        let _result = ok.set(i_row, 0, true);
+    }
+    for i_col in 1..(n_cols - 1) {
+        for i_row in 0..n_rows {
+            let tree: u8 = array.get(i_row, i_col).unwrap().clone();
+            let visible_tree: bool = tree > col_ok[i_row];
+            col_ok[i_row] = cmp::max(col_ok[i_row], tree);
+            ok.get_mut(i_row, i_col).map(|x| *x = *x | &visible_tree);
+        }
+    }
+
+    let mut res_part1: usize = 0;
+    for i_row in 0..n_rows {
+        let mut word = String::from("");
+        for i_col in 0..n_cols {
+            if *ok.get(i_row, i_col).unwrap() {
+                word.push_str("1");
+                res_part1 = res_part1 + 1;
+            } else {
+                word.push_str("0");
+            }
+        }
+        // println!("{}", word);
+    }
+    println!("The result for part 1 of day 08 is {res_part1}");
+
+    // Part 2
+    let mut res_part2: usize = 0;
+    for i_row in 0..n_rows {
+        for i_col in 0..n_cols {
+            let tree: u8 = array.get(i_row, i_col).unwrap().clone();
+            // bottom
+            let mut bottom: usize = 0;
+            for i_row2 in (i_row + 1)..n_rows {
+                bottom = bottom + 1;
+                if array.get(i_row2, i_col).unwrap() >= &tree {
+                    break;
+                }
+            }
+            // top
+            let mut top: usize = 0;
+            for i_row2 in (0..i_row).rev() {
+                top = top + 1;
+                if array.get(i_row2, i_col).unwrap() >= &tree {
+                    break;
+                }
+            }
+            // left
+            let mut left: usize = 0;
+            for i_col2 in (0..i_col).rev() {
+                left = left + 1;
+                if array.get(i_row, i_col2).unwrap() >= &tree {
+                    break;
+                }
+            }
+            // right
+            let mut right: usize = 0;
+            for i_col2 in i_col + 1..n_cols {
+                right = right + 1;
+                if array.get(i_row, i_col2).unwrap() >= &tree {
+                    break;
+                }
+            }
+            let view: usize = bottom * top * left * right;
+            // println!("row={i_row} col={i_col} view={view} bottom={bottom} top={top} left={left} right={right}");
+            if view > res_part2 {
+                res_part2 = view
+            }
+        }
+    }
+    println!("The result for part 2 of day 08 is {res_part2}");
+}
+
+fn day09_update_head(coord: &mut (isize, isize), dir: &str) {
+    let update: (isize, isize) = match &dir {
+        &"R" => (1, 0),
+        &"L" => (-1, 0),
+        &"U" => (0, 1),
+        &"D" => (0, -1),
+        _ => unreachable!(),
+    };
+    coord.0 = coord.0 + update.0;
+    coord.1 = coord.1 + update.1;
+}
+
+fn day09_update_tail(coord_tail: &mut (isize, isize), coord_head: &(isize, isize)) {
+    // println!("coord_tail={coord_tail:?}, coord_head={coord_head:?}");
+    let delta: (isize, isize) = (coord_head.0 - coord_tail.0, coord_head.1 - coord_tail.1);
+    let update: (isize, isize) = match &delta {
+        &(0, 0) => (0, 0),
+        &(1, 0) => (0, 0),
+        &(-1, 0) => (0, 0),
+        &(0, 1) => (0, 0),
+        &(0, -1) => (0, 0),
+        &(1, 1) => (0, 0),
+        &(1, -1) => (0, 0),
+        &(-1, 1) => (0, 0),
+        &(-1, -1) => (0, 0),
+        &(2, 0) => (1, 0),
+        &(-2, 0) => (-1, 0),
+        &(0, 2) => (0, 1),
+        &(0, -2) => (0, -1),
+        &(1, 2) => (1, 1),
+        &(2, 1) => (1, 1),
+        &(2, -1) => (1, -1),
+        &(1, -2) => (1, -1),
+        &(-1, -2) => (-1, -1),
+        &(-2, -1) => (-1, -1),
+        &(-2, 1) => (-1, 1),
+        &(-1, 2) => (-1, 1),
+        &(2, 2) => (1, 1),
+        &(2, -2) => (1, -1),
+        &(-2, -2) => (-1, -1),
+        &(-2, 2) => (-1, 1),
+        _ => unreachable!(),
+    };
+    coord_tail.0 = coord_tail.0 + update.0;
+    coord_tail.1 = coord_tail.1 + update.1;
+}
+
+fn day09() {
+    let file_path: &str = "./inputs/day09/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    //
+    let n_knots: u8 = 9;
+    let last_knot: u8 = n_knots - 1;
+    let mut coord_head: (isize, isize) = (0, 0);
+    let mut coord_knots: HashMap<u8, (isize, isize)> = HashMap::new();
+    for i_knot in 0..n_knots {
+        coord_knots.insert(i_knot, (0, 0));
+    }
+    let mut visited: HashMap<(isize, isize), usize> = HashMap::new();
+    let coord_tail: (isize, isize) = coord_knots.get(&last_knot).unwrap().clone();
+    visited.insert(coord_tail, 1);
+    //
+    for line in contents.lines() {
+        let head_dir: &str = &line[0..1];
+        let head_offset: usize = line[2..].parse().expect("Could not conver to usize");
+        for _i in 0..head_offset {
+            day09_update_head(&mut coord_head, head_dir);
+            // println!("==========================");
+            // println!("New coord_head={coord_head:?}");
+            // println!("Knot 0");
+            let mut coord_to_update = coord_knots.entry(0).or_insert((0, 0));
+            day09_update_tail(&mut coord_to_update, &coord_head);
+            for i_knot in 1..n_knots {
+                // println!("Knot {i_knot}");
+                let coord_to_follow = coord_knots.get(&(i_knot - 1)).copied().unwrap();
+                let mut coord_to_update = coord_knots.entry(i_knot).or_insert((0, 0));
+                day09_update_tail(&mut coord_to_update, &coord_to_follow);
+                // println! {"New coord for knot {i_knot}: {coord_to_update:?}"};
+            }
+            let coord_tail: (isize, isize) = coord_knots.get(&last_knot).unwrap().clone();
+            let visit_number = visited.entry(coord_tail).or_insert(0);
+            *visit_number += 1;
+            // println!("The head is at {coord_head:?}, the tail is at {coord_tail:?}");
+        }
+    }
+    let res_part1: usize = visited.len();
+    println!("The result for part 2 of day 09 is {res_part1}")
 }
 
 fn main() {
@@ -406,4 +632,6 @@ fn main() {
     day05();
     day06();
     day07();
+    day08();
+    day09();
 }
