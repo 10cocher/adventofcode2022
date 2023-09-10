@@ -687,6 +687,192 @@ fn day10() {
     }
 }
 
+#[derive(Debug)]
+struct Monkey {
+    items: Vec<usize>,
+    add: usize,
+    mult: usize,
+    square: usize,
+    divider: usize,
+    destination_true: u8,
+    destination_false: u8,
+}
+
+impl Default for Monkey {
+    fn default() -> Monkey {
+        Monkey {
+            items: Vec::new(),
+            add: 0,
+            mult: 0,
+            square: 0,
+            divider: 0,
+            destination_true: 0,
+            destination_false: 0,
+        }
+    }
+}
+
+impl Monkey {
+    fn new_worry(&self, item: usize) -> usize {
+        // Apply operation
+        let worry: usize;
+        if self.square == 1 {
+            worry = item * item;
+        } else if self.mult > 0 {
+            worry = item * self.mult;
+        } else if self.add > 0 {
+            worry = item + self.add;
+        } else {
+            unreachable!("No operation to apply?")
+        }
+        // Apply relief
+        worry / 3
+    }
+    fn throw_one_item(&self, item: usize) -> (u8, usize) {
+        let worry_relief = self.new_worry(item);
+        if worry_relief % self.divider == 0 {
+            (self.destination_true, worry_relief)
+        } else {
+            (self.destination_false, worry_relief)
+        }
+    }
+    fn throw_all_items(&self) -> Vec<(u8, usize)> {
+        let mut thrown_items: Vec<(u8, usize)> = Vec::new();
+        for item in self.items.clone().into_iter() {
+            let item_thrown: (u8, usize) = self.throw_one_item(item);
+            thrown_items.push(item_thrown)
+        }
+        thrown_items
+    }
+}
+
+fn day11() {
+    let file_path: &str = "./inputs/day11/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let mut lines = contents.lines();
+    //
+    let mut monkeys: HashMap<u8, Monkey> = HashMap::new();
+    // Parse the input file to initialize all monkeys
+    //
+    let re_monkey_id = match Regex::new("^Monkey ([0-9]+):$") {
+        Ok(result) => result,
+        Err(error) => {
+            panic!("Problem constructing the monkey_id regex {}", error);
+        }
+    };
+    //
+    let mut parsing_finished: bool = false;
+    let mut line: &str = lines.next().unwrap();
+    //
+    while !parsing_finished {
+        if line.len() > 8 {
+            if &line[0..6] == "Monkey" {
+                let monkey_id: u8 = match re_monkey_id.captures(line) {
+                    Some(match_results) => match_results[1].parse().unwrap(),
+                    None => panic!("I did not find the id of the monkey"),
+                };
+                // parse items
+                line = lines.next().unwrap();
+                let mut items: Vec<usize> = Vec::new();
+                for item_str in line[18..].split(",") {
+                    let item_int: usize = item_str.trim().parse().expect("Could not convert");
+                    items.push(item_int);
+                }
+                // Parse operation
+                line = lines.next().unwrap();
+                let line_short = &line[23..];
+                let add: usize;
+                let mult: usize;
+                let square: usize;
+                if line_short == "* old" {
+                    add = 0;
+                    mult = 0;
+                    square = 1;
+                } else if &line_short[0..1] == "+" {
+                    add = line_short[2..]
+                        .parse()
+                        .expect("Could not convert add to int");
+                    mult = 0;
+                    square = 0;
+                } else if &line_short[0..1] == "*" {
+                    add = 0;
+                    mult = line_short[2..]
+                        .parse()
+                        .expect("Could not convert mult to int");
+                    square = 0;
+                } else {
+                    unreachable!("Could not find the operation.")
+                }
+                // Parse divider
+                line = lines.next().unwrap();
+                let divider: usize = line[21..].parse().expect("Could not convert");
+                // Parse true
+                line = lines.next().unwrap();
+                let destination_true: u8 = line[29..].parse().expect("Could not convert");
+                // Parse false
+                line = lines.next().unwrap();
+                let destination_false: u8 = line[30..].parse().expect("Could not convert");
+                //
+                // Instantiate a new monkey
+                let monkey = Monkey {
+                    items,
+                    add,
+                    mult,
+                    square,
+                    divider,
+                    destination_true,
+                    destination_false,
+                };
+                monkeys.insert(monkey_id, monkey);
+            }
+        }
+
+        line = match lines.next() {
+            Some(l) => l,
+            None => {
+                parsing_finished = true;
+                &"0"
+            }
+        }
+    }
+    let n_monkeys: u8 = monkeys.len() as u8;
+    let mut handled_item_count: HashMap<u8, usize> = HashMap::new();
+
+    // Apply rounds
+    let n_rounds: u8 = 20;
+    for _i_round in 0..n_rounds {
+        // println!("Round {_i_round}");
+        for i_monkey in 0..n_monkeys {
+            let monkey = monkeys.entry(i_monkey).or_insert(Monkey {
+                ..Default::default()
+            });
+            let item_count = handled_item_count.entry(i_monkey).or_insert(0);
+            *item_count = *item_count + monkey.items.len();
+            //
+            let thrown_items: Vec<(u8, usize)> = monkey.throw_all_items();
+            monkey.items.clear();
+            //
+
+            for (destination_monkey, item) in thrown_items {
+                let monkey = monkeys.entry(destination_monkey).or_insert(Monkey {
+                    ..Default::default()
+                });
+                monkey.items.push(item)
+            }
+        }
+        // for i_monkey in 0..n_monkeys {
+        //    let monkey = monkeys.get(&i_monkey).unwrap();
+        //    println!("Monkey {i_monkey} is {:?}", monkey);
+        //}
+    }
+    // println!("{:?}", handled_item_count);
+    let mut total_handled: Vec<usize> = handled_item_count.values().cloned().collect();
+    total_handled.sort_by(|a, b| b.cmp(a));
+    // println!("{}, {}", total_handled[0], total_handled[1]);
+    let res_part1: usize = total_handled[0] * total_handled[1];
+    println!("The result for part 1 of day 11 is {res_part1}");
+}
+
 fn main() {
     println!("Hello, world!");
     day02();
@@ -698,4 +884,5 @@ fn main() {
     day08();
     day09();
     day10();
+    day11();
 }
