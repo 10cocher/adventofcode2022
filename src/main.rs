@@ -1,4 +1,5 @@
 use array2d::Array2D;
+use itertools::Itertools;
 use regex::Regex;
 use std::cmp;
 use std::collections::HashMap;
@@ -624,6 +625,68 @@ fn day09() {
     println!("The result for part 2 of day 09 is {res_part1}")
 }
 
+fn day10() {
+    let file_path: &str = "./inputs/day10/input.txt";
+    let contents = fs::read_to_string(file_path).expect("Should have been able to read the file");
+    let mut lines = contents.lines();
+    //
+    let mut register: isize = 1;
+    let mut cycle: usize = 1;
+    let cycles: Vec<usize> = vec![20, 60, 100, 140, 180, 220];
+    //
+    let mut add_operation: HashMap<usize, isize> = HashMap::new();
+    let mut lines_to_be_read: bool = true;
+    let mut suspended: bool = false;
+    let mut line: &str = match lines.next() {
+        Some(l) => l,
+        None => panic!("No line in the file, weird"),
+    };
+    let mut result_part1: isize = 0;
+    let mut result_part2: String = String::from("");
+    //
+    while lines_to_be_read | suspended {
+        //println!("At the start of cycle {cycle:>3}, X={register:>3}");
+        if cycles.contains(&cycle) {
+            result_part1 = result_part1 + cycle as isize * register;
+        }
+        let cycle2 = (cycle - 1) % 40;
+        if (cycle2 as isize >= register - 1) & (cycle2 as isize <= register + 1) {
+            result_part2.push_str("#");
+        } else {
+            result_part2.push_str(".");
+        }
+        if suspended {
+            suspended = false;
+        } else {
+            if &line[..4] == "noop" {
+            } else {
+                let value: isize = line[5..].parse().expect("Could not convert to integer");
+                add_operation.insert(cycle + 2, value);
+                suspended = true;
+            }
+            line = match lines.next() {
+                Some(l) => l,
+                None => {
+                    lines_to_be_read = false;
+                    &"0"
+                }
+            };
+        }
+        // println!("hashmap is {:?}", { add_operation.clone() });
+        cycle = cycle + 1;
+        let possible_addx = add_operation.remove(&cycle).unwrap_or(0);
+        register = register + possible_addx;
+    }
+    println!("The result for part 1 of day 10 is {result_part1}");
+    println!("The result for part 2 of day 10 is:");
+    for chunk in &result_part2.chars().chunks(40) {
+        for c in chunk {
+            print!("{}", c)
+        }
+        println!();
+    }
+}
+
 fn main() {
     println!("Hello, world!");
     day02();
@@ -634,4 +697,5 @@ fn main() {
     day07();
     day08();
     day09();
+    day10();
 }
